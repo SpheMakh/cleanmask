@@ -32,15 +32,11 @@ def requirements():
     with open('{}/requirements.txt'.format(cdir)) as f:
         return [pname.strip() for pname in f.readlines()]
 
-package_data = {
-    pkg :   'cleanmask/*.py'
-}
-
 scripts = ['bin/cleanmask']
 
 setup(name=pkg,
       version="0.0.1",
-      description='Creates a binary mask given a FITS file',
+      description='Creates a binary mask given a FITS image',
       long_description=readme(),
       url='',
       classifiers=[
@@ -55,9 +51,7 @@ setup(name=pkg,
       author_email='sphemakh@gmail.com',
       license='GNU GPL v2',
       packages=[pkg],
-      requires=requirements(),
-      package_data=package_data,
-      include_package_data=True,
+      install_requires=requirements(),
       zip_safe=False,
       scripts = scripts,
 )
