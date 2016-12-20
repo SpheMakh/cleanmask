@@ -5,6 +5,7 @@ import concurrent.futures as cf
 from skimage import measure
 import scipy.ndimage as ndimage
 from  argparse import ArgumentParser
+import logging
 
 morph = ndimage.morphology
 
@@ -17,6 +18,34 @@ def get_imslice(ndim):
         else:
             imslice.append(slice(None))
     return imslice
+
+
+def work(i, boxes, size, overlap, npix, iters, sigma, im):
+    slice_list = []
+    for j in xrange(boxes):
+        logging.info("Sigma cliping RMS box ({0},{1})".format(i,j))
+        xi, yi = i*size-overlap, j*size-overlap
+        xf, yf = i*size + size + overlap, j*size + size + overlap
+
+        xi, xf = sorted([xi,xf])
+        yi, yf = sorted([yi,yf])
+
+        # Boundary conditions
+        if xi <0: 
+            xi = 0 
+        if yi < 0:
+            yi = 0 
+
+        if xf > npix:
+            xf = npix
+        if yf > npix:
+            yf = npix
+    
+        imslice = [slice(xi, xf), slice(yi, yf)]
+        tmp = im[imslice]
+        slice_list.append([i, imslice, stats.sigma_clip(tmp, sigma=sigma, iters=iters).mask])
+    return slice_list
+
 
 
 def main(argv):
@@ -59,16 +88,21 @@ def main(argv):
     add('-nn', '--no-negatives', action='store_true',
         help='Include negative pixels when creating binary mask')
 
+    add('-ll', '--log-level', type=str, choices=['INFO', 'DEBUG','CRITICAL', 'WARNING'],
+        default='INFO',
+        help='Log level')
 
     args = parser.parse_args(argv)
     outname = args.output or args.image[:-5]+"-masked.fits" 
     
+    logging.basicConfig(level=getattr(logging, args.log_level))
+
     hdu = fitsio.open(args.image)
     data = hdu[0].data
     hdr = hdu[0].header
     npix = hdr["NAXIS1"]
     
-    im = data[utils.get_imslice(hdr["naxis"])]
+    im = data[get_imslice(hdr["naxis"])]
     
     size = npix/args.boxes
     overlap = int(size*args.overlap/2)
@@ -77,37 +111,11 @@ def main(argv):
     ex = cf.ProcessPoolExecutor(8)
     futures = []
     
-    def work(i):
-        slice_list = []
-        for j in xrange(args.boxes):
-            xi, yi = i*size-overlap, j*size-overlap
-            xf, yf = i*size + size + overlap, j*size + size + overlap
-    
-            xi, xf = sorted([xi,xf])
-            yi, yf = sorted([yi,yf])
-    
-            # Boundary conditions
-            if xi <0: 
-                xi = 0 
-            if yi < 0:
-                yi = 0 
-    
-            if xf > npix:
-                xf = npix
-            if yf > npix:
-                yf = npix
-        
-            imslice = [slice(xi, xf), slice(yi, yf)]
-            tmp = im[imslice]
-            slice_list.append([i, imslice, stats.sigma_clip(tmp, sigma=sigma, iters=iters).mask])
-        return slice_list
-    
-    print("Creating mask...")
     for i in xrange(args.boxes):
-        print("Sigma cliping RMS box {0} of {1}".format(i, args.boxes))
-        f = ex.submit(work, i)
+        f = ex.submit(work, i, boxes=args.boxes, size=size, overlap=overlap, npix=npix, iters=args.iters, sigma=args.sigma, im=im)
         futures.append(f)
     
+    logging.info("Creating mask...")
     for i, f in enumerate(cf.as_completed(futures)):
         for j, imslice, submask in f.result():
             mask[imslice] = submask
@@ -132,9 +140,9 @@ def main(argv):
         return max(r)
     
     if args.dilate:
-        print("The mask has {0} islands. Will now attempt to dilate".format(len(labels)))
+        logging.info("The mask has {0} islands. Will now attempt to dilate".format(len(labels)))
         for i,label in enumerate(labels):
-            print("Dilating island {0} of {1}".format(i, len(labels)))
+            logging.info("Dilating island {0} of {1}".format(i+1, len(labels)))
 
             island = numpy.where(islands==label)
             rx, ry = centre(island)
@@ -171,7 +179,6 @@ def main(argv):
                 if counter>args.diter:
                     make_bigger = False
         
-                dilate += 2
                 struct = ndimage.generate_binary_structure(2, 2)
                 if make_bigger:
                     nmask = morph.binary_dilation(nmask, structure=struct, iterations=1).astype(imask.dtype)
@@ -188,4 +195,4 @@ def main(argv):
     hdu.writeto(outname, clobber=True)
     hdu.close()
 
-    print("Sucessfully created binary mask.")
+    logging.info("Sucessfully created binary mask.")
