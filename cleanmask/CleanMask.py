@@ -4,6 +4,7 @@ import numpy
 import concurrent.futures as cf
 from skimage import measure
 import scipy.ndimage as ndimage
+from  argparse import ArgumentParser
 
 morph = ndimage.morphology
 
@@ -55,7 +56,7 @@ def main(argv):
     add('-di', '--diter', type=int, default=20,
         help='Maximum number of binary mask iterations per island.')
 
-    add('nn', '--no-negatives', action='store_true',
+    add('-nn', '--no-negatives', action='store_true',
         help='Include negative pixels when creating binary mask')
 
 
