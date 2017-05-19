@@ -86,7 +86,7 @@ def main(argv):
         help='Maximum number of binary mask iterations per island.')
 
     add('-nn', '--no-negatives', action='store_true',
-        help='Include negative pixels when creating binary mask')
+        help='Don not Include negative pixels when creating binary mask')
 
     add('-ll', '--log-level', type=str, choices=['INFO', 'DEBUG','CRITICAL', 'WARNING'],
         default='INFO',
