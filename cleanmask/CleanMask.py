@@ -6,6 +6,7 @@ from skimage import measure
 import scipy.ndimage as ndimage
 from  argparse import ArgumentParser
 import logging
+import sys
 
 morph = ndimage.morphology
 
@@ -86,7 +87,10 @@ def main(argv):
         help='Maximum number of binary mask iterations per island.')
 
     add('-nn', '--no-negatives', action='store_true',
-        help='Don not Include negative pixels when creating binary mask')
+        help='Do not Include negative pixels when creating binary mask')
+
+    add('-pf', '--peak-fraction', type=float,
+        help='Clip image based on this fraction of the peak pixel in the image. Will ingore --sigma')
 
     add('-ll', '--log-level', type=str, choices=['INFO', 'DEBUG','CRITICAL', 'WARNING'],
         default='INFO',
@@ -103,6 +107,25 @@ def main(argv):
     npix = hdr["NAXIS1"]
     
     im = data[get_imslice(hdr["naxis"])]
+
+    if args.peak_fraction:
+        peak = im.max()
+        mask = (im > peak*args.peak_fraction).astype(numpy.float32)
+
+        if args.mask_value != 0:
+            if isinstance(mask_value, (str, unicode)):
+                if str(mask_value).lower()=="nan":
+                    mask_value = numpy.nan
+            mask[mask==0] = mask_value
+        
+        hdu[0].data = mask[numpy.newaxis, numpy.newaxis, ...]
+        
+        hdu.writeto(outname, clobber=True)
+        hdu.close()
+
+        logging.info("Sucessfully created binary mask.")
+        sys.exit(0)
+
     
     size = npix/args.boxes
     overlap = int(size*args.overlap/2)

@@ -35,7 +35,7 @@ def requirements():
 scripts = ['bin/cleanmask']
 
 setup(name=pkg,
-      version="0.0.1",
+      version="0.0.2",
       description='Creates a binary mask given a FITS image',
       long_description=readme(),
       url='',
