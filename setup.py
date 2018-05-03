@@ -22,11 +22,6 @@ import os
 from setuptools import setup
 import sys
 pkg='cleanmask'
-cdir = '.' #os.path.dirname(__file__)
-
-def readme():
-    with open('{}/README.md'.format(cdir)) as f:
-        return f.read()
 
 requirements = [
 "numpy",
@@ -38,11 +33,12 @@ requirements = [
 
 scripts = ['bin/cleanmask']
 
+__version__ = "1.0.0"
+
 setup(name=pkg,
-      version="0.0.3:",
+      version=__version__,
       description='Creates a binary mask given a FITS image',
-      long_description=readme(),
-      url='',
+      url='https://github.com/SpheMakh/cleanmask',
       classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
