@@ -1,0 +1,3 @@
+include bin/cleanmask
+recursive-include cleanmask/ *.py
+

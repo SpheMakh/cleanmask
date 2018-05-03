@@ -22,20 +22,24 @@ import os
 from setuptools import setup
 import sys
 pkg='cleanmask'
-cdir = os.path.dirname(__file__)
+cdir = '.' #os.path.dirname(__file__)
 
 def readme():
     with open('{}/README.md'.format(cdir)) as f:
         return f.read()
 
-def requirements():
-    with open('{}/requirements.txt'.format(cdir)) as f:
-        return [pname.strip() for pname in f.readlines()]
+requirements = [
+"numpy",
+"astropy",
+"scipy",
+"scikit_image",
+"futures",
+]
 
 scripts = ['bin/cleanmask']
 
 setup(name=pkg,
-      version="0.0.2",
+      version="0.0.3:",
       description='Creates a binary mask given a FITS image',
       long_description=readme(),
       url='',
@@ -51,7 +55,7 @@ setup(name=pkg,
       author_email='sphemakh@gmail.com',
       license='GNU GPL v2',
       packages=[pkg],
-      install_requires=requirements(),
+      install_requires=requirements,
       zip_safe=False,
       scripts = scripts,
 )
