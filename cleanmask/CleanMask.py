@@ -7,6 +7,9 @@ import scipy.ndimage as ndimage
 from  argparse import ArgumentParser
 import logging
 import sys
+import pkg_resources
+
+__version__ = pkg_resources.require("cleanmask")[0].version
 
 morph = ndimage.morphology
 
@@ -56,6 +59,7 @@ def main(argv):
     parser = ArgumentParser(description="Create a binary mask")
     add = parser.add_argument
 
+    add("-v","--version", action='version', version='{0:s} version {1:s}'.format(parser.prog, __version__))
     add('-i', '--image', 
         help='iFITS image from which to derive the binary mask')
 
