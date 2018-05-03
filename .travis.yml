@@ -1,0 +1,18 @@
+language: python
+sudo: required
+services:
+- docker
+before_install:
+- true
+install:
+- docker build -t cleanmask .
+script:
+- true
+deploy:
+  provider: pypi
+  user: sphemakh
+  password:
+    secure: fXNbehgIsyOPbkcnCVP9tRD1D8YEFtOIYR5zQiUM2ucHvWvnM8LH9IVgHfSToEwcJ5qRV96VRN21tVQ71iJ7EKYYhXCJK1lRGAfdy5xYBMNwCxJipEEGicsfv5w6VycAxsOcSddRkliWT6c8F4yvGr1e+dp6n30dpuxscHYUq+S9t5a/CHXX9IwC9/5cKMusZeEeNyzGZ91to6elKWDWzVMiQy/VmIfegnMmffYxdI7j5oPaHX1hjT38lVJUZ2jJs5F/Y1Jj4AI5J0VbeuQjH+ueEv0QrRTASXdo4Pq2v1QfJk7uCYefIQDAjvQbUoWLkkUrUb0XwZZB60MTbGumJ58xqNpyIkKtzYIjZI9PSs/aTcEO710muDQKAZFOFa1oxJ/7UQ2TE8chQ4Fsb3CDnxh/cH0hDm9UwgfwEbBKlhT5cM1vnfepvrHU6p992QTGs2roGGyJWy7HkUUMlq7O9UjPNZrj4U/uYvVFjkXtFRiRWZfv6D++2Rjpbp7htp/S6SE+3X20KqnTBJudl6JmHjxL2Wibz/5ckRgzA9uFcPgboms099xwJmvemmZe6NHJsg028q1Nw2G3rVToZTVvFVS4VvH2UPR4GgbECBhGKlyfDjG0cZjTFk+kKgoJE7Uf/Ho6hQxHiX9Veg5Z/vFsgtxQY9xvSFxfEoRTn1pMNXE=
+  on:
+    tags: true
+    repo: SpheMakh/cleanmask
