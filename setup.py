@@ -33,7 +33,7 @@ requirements = [
 
 scripts = ['bin/cleanmask']
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 setup(name=pkg,
       version=__version__,
@@ -49,7 +49,7 @@ setup(name=pkg,
         "Topic :: Scientific/Engineering :: Astronomy"],
       author='Sphesihle Makhathini',
       author_email='sphemakh@gmail.com',
-      license='GNU GPL v2',
+      license=['GNU GPL v2'],
       packages=[pkg],
       install_requires=requirements,
       zip_safe=False,
