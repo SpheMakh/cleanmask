@@ -1,5 +1,4 @@
-FROM kernsuite/base:3
-RUN docker-apt-install python-pip
+FROM stimela/base:1.0.0
 RUN pip install --upgrade pip setuptools
 ADD . /tmp/cleanmask
 RUN pip install /tmp/cleanmask
