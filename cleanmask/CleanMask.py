@@ -24,7 +24,11 @@ def get_imslice(ndim):
     return imslice
 
 
-def work(i, boxes, size, overlap, npix, iters, sigma, im, scales=None):
+def work(i, boxes, size, overlap, 
+            npix, iters, sigma, 
+            im, scales=[], 
+            sigmas=None):
+
     slice_list = []
     for j in xrange(boxes):
         logging.info("Sigma cliping RMS box ({0},{1})".format(i,j))
@@ -47,17 +51,15 @@ def work(i, boxes, size, overlap, npix, iters, sigma, im, scales=None):
     
         imslice = [slice(xi, xf), slice(yi, yf)]
         tmp = im[imslice]
-        mask = 1
+        mask =  stats.sigma_clip(tmp, sigma=sigma, iters=iters).mask
         if scales:
-            for scale in scales:                
+            if sigmas in [None, []]:
+                sigmas = [sigma] * len(scales)
+            for scale,sigma in zip(scales, sigmas):                
                 smooth = ndimage.filters.gaussian_filter(tmp, [scale, scale])
-                mask *=  stats.sigma_clip(smooth, sigma=sigma, iters=iters).mask
-        else:
-            mask =  stats.sigma_clip(tmp, sigma=sigma, iters=iters).mask
-            
+                mask +=  stats.sigma_clip(smooth, sigma=sigma, iters=iters).mask
         slice_list.append([i, imslice, mask])
 
-        slice_list.append([i, imslice, stats.sigma_clip(tmp, sigma=sigma, iters=iters).mask])
     return slice_list
 
 
@@ -86,7 +88,7 @@ def main(argv):
         help='Will devide image into this number of boxes, then perform sigma clipping in each of those boxes')
 
     add('-ol', '--overlap', type=float, default=0,
-        help='Overlap region. As a fraction of -nb/--boxes')
+        help='Overlap region. As a fraction of the "box size given by --boxes/npixels')
 
     add('-mv', '--mask-value', type=float, default=0.0,
         help='Value to use for masked regions.')
@@ -108,6 +110,12 @@ def main(argv):
 
     add('-ss', '--smooth-scales', type=int, default=None, nargs='+',
         help='Mask at different spatial scales (in pixels), then create a combined mask')
+
+    add('-sss', '--smooth-scales-sigma', type=float, default=None, nargs='+',
+        help='Sigma for each scale when --smooth-scales is specified')
+
+    add('-j', '--ncpu', type=int, default=4,
+        help='Number of CPUs to use')
 
     add('-ll', '--log-level', type=str, choices=['INFO', 'DEBUG','CRITICAL', 'WARNING'],
         default='INFO',
@@ -150,6 +158,7 @@ def main(argv):
     
     size = npix/args.boxes
     overlap = int(size*args.overlap/2)
+    # single or multi-scale masking 
     if isinstance(args.smooth_scales, int):
         scales = [args.smooth_scales]
     elif isinstance(args.smooth_scales, list):
@@ -157,13 +166,28 @@ def main(argv):
     else:
         scales = None
 
+    if isinstance(args.smooth_scales_sigma, (float,int)):
+        sigmas = [args.smooth_scales_sigma]
+    elif isinstance(args.smooth_scales_sigma, list):
+        sigmas = args.smooth_scales_sigma
+    else:
+        sigmas = None
+
     mask = numpy.zeros(im.shape, dtype=numpy.float32)
     
-    ex = cf.ProcessPoolExecutor(8)
+    ex = cf.ProcessPoolExecutor(args.ncpu)
     futures = []
     
+    if scales and sigmas:
+        if len(scales) != len(sigmas):
+            raise RuntimeError("You have selected to clip at different sigmas but your list of sigmas does not match the length of the scales")
+
     for i in xrange(args.boxes):
-        f = ex.submit(work, i, boxes=args.boxes, size=size, overlap=overlap, npix=npix, iters=args.iters, sigma=args.sigma, im=im, scales=scales)
+        f = ex.submit(work, i, boxes=args.boxes, size=size, 
+                      overlap=overlap, npix=npix, 
+                      iters=args.iters, sigma=args.sigma, 
+                      im=im, scales=scales,
+                      sigmas=sigmas)
         futures.append(f)
     
     logging.info("Creating mask...")
