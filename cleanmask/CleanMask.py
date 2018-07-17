@@ -24,7 +24,11 @@ def get_imslice(ndim):
     return imslice
 
 
-def work(i, boxes, size, overlap, npix, iters, sigma, im):
+def work(i, boxes, size, overlap, 
+            npix, iters, sigma, 
+            im, scales=[], 
+            sigmas=None):
+
     slice_list = []
     for j in xrange(boxes):
         logging.info("Sigma cliping RMS box ({0},{1})".format(i,j))
@@ -47,7 +51,15 @@ def work(i, boxes, size, overlap, npix, iters, sigma, im):
     
         imslice = [slice(xi, xf), slice(yi, yf)]
         tmp = im[imslice]
-        slice_list.append([i, imslice, stats.sigma_clip(tmp, sigma=sigma, iters=iters).mask])
+        mask =  stats.sigma_clip(tmp, sigma=sigma, iters=iters).mask
+        if scales:
+            if sigmas in [None, []]:
+                sigmas = [sigma] * len(scales)
+            for scale,sigma in zip(scales, sigmas):                
+                smooth = ndimage.filters.gaussian_filter(tmp, [scale, scale])
+                mask +=  stats.sigma_clip(smooth, sigma=sigma, iters=iters).mask
+        slice_list.append([i, imslice, mask])
+
     return slice_list
 
 
@@ -66,7 +78,7 @@ def main(argv):
     add('-o', '--output', type=str,
         help='Name of resulting FITS mask image')
 
-    add('-s', '--sigma', type=int, default=5,
+    add('-s', '--sigma', type=float, default=5.0,
         help='The number of standard deviations to use for both the lower and upper clipping limit.')
 
     add('-it', '--iters', type=int, default=3,
@@ -76,9 +88,9 @@ def main(argv):
         help='Will devide image into this number of boxes, then perform sigma clipping in each of those boxes')
 
     add('-ol', '--overlap', type=float, default=0,
-        help='Overlap region. As a fraction of -nb/--boxes')
+        help='Overlap region. As a fraction of the "box size given by --boxes/npixels')
 
-    add('-mv', '--mask-value', type=float, default=0,
+    add('-mv', '--mask-value', type=float, default=0.0,
         help='Value to use for masked regions.')
 
     add('-d', '--dilate', action='store_true',
@@ -96,6 +108,15 @@ def main(argv):
     add('-pf', '--peak-fraction', type=float,
         help='Clip image based on this fraction of the peak pixel in the image. Will ingore --sigma')
 
+    add('-ss', '--smooth-scales', type=int, default=None, nargs='+',
+        help='Mask at different spatial scales (in pixels), then create a combined mask')
+
+    add('-sss', '--smooth-scales-sigma', type=float, default=None, nargs='+',
+        help='Sigma for each scale when --smooth-scales is specified')
+
+    add('-j', '--ncpu', type=int, default=4,
+        help='Number of CPUs to use')
+
     add('-ll', '--log-level', type=str, choices=['INFO', 'DEBUG','CRITICAL', 'WARNING'],
         default='INFO',
         help='Log level')
@@ -112,19 +133,23 @@ def main(argv):
     
     im = data[get_imslice(hdr["naxis"])]
 
+    if args.mask_value != 0.0:
+        if isinstance(args.mask_value, (str, unicode)):
+            if str(args.mask_value).lower()=="nan":
+                mask_value = numpy.nan
+        else:
+            mask_value = args.mask_value
+    else:
+        mask_value = args.mask_value
+
     if args.peak_fraction:
         peak = im.max()
         mask = (im > peak*args.peak_fraction).astype(numpy.float32)
-
-        if args.mask_value != 0:
-            if isinstance(mask_value, (str, unicode)):
-                if str(mask_value).lower()=="nan":
-                    mask_value = numpy.nan
-            mask[mask==0] = mask_value
+        mask[mask==0] = mask_value
         
         hdu[0].data = mask[numpy.newaxis, numpy.newaxis, ...]
         
-        hdu.writeto(outname, clobber=True)
+        hdu.writeto(outname, overwrite=True)
         hdu.close()
 
         logging.info("Sucessfully created binary mask.")
@@ -133,13 +158,36 @@ def main(argv):
     
     size = npix/args.boxes
     overlap = int(size*args.overlap/2)
+    # single or multi-scale masking 
+    if isinstance(args.smooth_scales, int):
+        scales = [args.smooth_scales]
+    elif isinstance(args.smooth_scales, list):
+        scales = args.smooth_scales
+    else:
+        scales = None
+
+    if isinstance(args.smooth_scales_sigma, (float,int)):
+        sigmas = [args.smooth_scales_sigma]
+    elif isinstance(args.smooth_scales_sigma, list):
+        sigmas = args.smooth_scales_sigma
+    else:
+        sigmas = None
+
     mask = numpy.zeros(im.shape, dtype=numpy.float32)
     
-    ex = cf.ProcessPoolExecutor(8)
+    ex = cf.ProcessPoolExecutor(args.ncpu)
     futures = []
     
+    if scales and sigmas:
+        if len(scales) != len(sigmas):
+            raise RuntimeError("You have selected to clip at different sigmas but your list of sigmas does not match the length of the scales")
+
     for i in xrange(args.boxes):
-        f = ex.submit(work, i, boxes=args.boxes, size=size, overlap=overlap, npix=npix, iters=args.iters, sigma=args.sigma, im=im)
+        f = ex.submit(work, i, boxes=args.boxes, size=size, 
+                      overlap=overlap, npix=npix, 
+                      iters=args.iters, sigma=args.sigma, 
+                      im=im, scales=scales,
+                      sigmas=sigmas)
         futures.append(f)
     
     logging.info("Creating mask...")
@@ -211,15 +259,11 @@ def main(argv):
                     nmask = morph.binary_dilation(nmask, structure=struct, iterations=1).astype(imask.dtype)
             mask[imslice] = nmask
     
-    if args.mask_value != 0:
-        if isinstance(mask_value, (str, unicode)):
-            if str(mask_value).lower()=="nan":
-                mask_value = numpy.nan
-        mask[mask==0] = mask_value
+    mask[mask==numpy.float32(0)] = mask_value
     
     hdu[0].data = mask[numpy.newaxis, numpy.newaxis, ...]
     
-    hdu.writeto(outname, clobber=True)
+    hdu.writeto(outname, overwrite=True)
     hdu.close()
 
     logging.info("Sucessfully created binary mask.")
