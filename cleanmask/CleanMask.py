@@ -16,12 +16,12 @@ morph = ndimage.morphology
 
 def get_imslice(ndim):
     imslice = []
-    for i in xrange(ndim):
+    for i in range(ndim):
         if i<ndim-2:
             imslice.append(0)
         else:
             imslice.append(slice(None))
-    return imslice
+    return tuple(imslice)
 
 
 def work(i, boxes, size, overlap, 
@@ -30,10 +30,10 @@ def work(i, boxes, size, overlap,
             sigmas=None):
 
     slice_list = []
-    for j in xrange(boxes):
+    for j in range(boxes):
         logging.info("Sigma cliping RMS box ({0},{1})".format(i,j))
-        xi, yi = i*size-overlap, j*size-overlap
-        xf, yf = i*size + size + overlap, j*size + size + overlap
+        xi, yi = map(int, [i*size-overlap, j*size-overlap])
+        xf, yf = map(int, [i*size + size + overlap, j*size + size + overlap])
 
         xi, xf = sorted([xi,xf])
         yi, yf = sorted([yi,yf])
@@ -49,9 +49,9 @@ def work(i, boxes, size, overlap,
         if yf > npix:
             yf = npix
     
-        imslice = [slice(xi, xf), slice(yi, yf)]
+        imslice = (slice(xi, xf), slice(yi, yf))
         tmp = im[imslice]
-        mask =  stats.sigma_clip(tmp, sigma=sigma, iters=iters).mask
+        mask =  stats.sigma_clip(tmp, sigma=sigma, maxiters=iters).mask
         if scales:
             if sigmas in [None, []]:
                 sigmas = [sigma] * len(scales)
@@ -182,7 +182,7 @@ def main(argv):
         if len(scales) != len(sigmas):
             raise RuntimeError("You have selected to clip at different sigmas but your list of sigmas does not match the length of the scales")
 
-    for i in xrange(args.boxes):
+    for i in range(args.boxes):
         f = ex.submit(work, i, boxes=args.boxes, size=size, 
                       overlap=overlap, npix=npix, 
                       iters=args.iters, sigma=args.sigma, 
@@ -206,8 +206,8 @@ def main(argv):
     def extent(isl):
         nisl = len(isl[0])
         r = []
-        for i in xrange(nisl):
-            for j in xrange(i,nisl):
+        for i in range(nisl):
+            for j in range(i,nisl):
                 a = isl[0][i], isl[1][i]
                 b = isl[0][j], isl[1][j]
                 rad = (a[0]-b[0])**2 + (a[1]-b[1])**2

@@ -1,19 +1,17 @@
 language: python
-python: 2.7
-sudo: required
-services:
-- docker
-before_install:
-- true
+sudo: false
+python:
+- '2.7'
+- '3.6'
 install:
-- docker build -t cleanmask .
+- python setup.py install
 script:
 - true
 deploy:
   provider: pypi
   user: sphemakh
   password:
-    secure: fXNbehgIsyOPbkcnCVP9tRD1D8YEFtOIYR5zQiUM2ucHvWvnM8LH9IVgHfSToEwcJ5qRV96VRN21tVQ71iJ7EKYYhXCJK1lRGAfdy5xYBMNwCxJipEEGicsfv5w6VycAxsOcSddRkliWT6c8F4yvGr1e+dp6n30dpuxscHYUq+S9t5a/CHXX9IwC9/5cKMusZeEeNyzGZ91to6elKWDWzVMiQy/VmIfegnMmffYxdI7j5oPaHX1hjT38lVJUZ2jJs5F/Y1Jj4AI5J0VbeuQjH+ueEv0QrRTASXdo4Pq2v1QfJk7uCYefIQDAjvQbUoWLkkUrUb0XwZZB60MTbGumJ58xqNpyIkKtzYIjZI9PSs/aTcEO710muDQKAZFOFa1oxJ/7UQ2TE8chQ4Fsb3CDnxh/cH0hDm9UwgfwEbBKlhT5cM1vnfepvrHU6p992QTGs2roGGyJWy7HkUUMlq7O9UjPNZrj4U/uYvVFjkXtFRiRWZfv6D++2Rjpbp7htp/S6SE+3X20KqnTBJudl6JmHjxL2Wibz/5ckRgzA9uFcPgboms099xwJmvemmZe6NHJsg028q1Nw2G3rVToZTVvFVS4VvH2UPR4GgbECBhGKlyfDjG0cZjTFk+kKgoJE7Uf/Ho6hQxHiX9Veg5Z/vFsgtxQY9xvSFxfEoRTn1pMNXE=
+    secure: sQCAY+6fuPuM3M0Pk5uZA3+CQBbqZf2l/8jzMUAubvMs1WeHqEDBbTAz8V0vljKH4/38NRZUrjPw7ajfRUoy6Sc0fLg5skAEWFP+9KKiTaq5UmRhY90f9S2Azbtz++Cr7IO16OMLViEMqiYLJpWXHzuctovUltlDZbBzPZF9gJkVPaxOxGDVnHMDDHP40kfLrZID2IMJ9Eri4NUDklPHtrh6nLE9+pPCpA476KQD0OvYP06c0I8Vm0bU1mPMXFeyl6DopCExqqNhki17GZK/bCua5irlKJlxQIcMJ+6d5emHpxfcGHZJxoqOgUvyv9xgEUfjCwGmXCxAtFMObyWmJzIZ/yCyMZ3hnaL+qhthtAykyop7emDJ06uiJZlq+WimR+TFSt2S29bQMZj/3OBDdnPTz3O34YAXYDdXHveCaw3ZjTsgFvHXrjyhxx2+rz5U/sELj/Xeitpse7mZigG2fsvdt7RNnpdO/rnlYrd2k4v/9b4rA90WAUkOcjhq8CPpxz/1/wdEBYJv4zaAIM8tu5QQiUqvhcFeNOnb5tjhWj+hRLNMnxXyBXVqH5ulCcVF3DwQrVHBsfa/A2VkbeNQyLVOh7q6bRUw/2XKmN7T8Jy+TnfIdTxDuicxfGZf7d/elbdXfZksxDOu0vChorgQvA4MevQEaeD3b5acc7EYSrU=
   on:
     tags: true
-    repo: SpheMakh/cleanmask
+    repo: SpheMakh/simms
