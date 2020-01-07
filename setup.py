@@ -28,7 +28,6 @@ requirements = [
 "astropy",
 "scipy",
 "scikit_image",
-"futures",
 ]
 
 scripts = ['bin/cleanmask']
